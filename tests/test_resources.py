@@ -1,6 +1,5 @@
 from datetime import datetime
 
-import desert
 import marshmallow
 import pytest
 
@@ -19,12 +18,8 @@ class TestGraph:
             },
         }
 
-    @pytest.fixture
-    def schema(self):
-        return desert.schema(resources.Graph)
-
-    def test_initialise(self, schema, expected_json_response):
-        price_history = schema.load(expected_json_response)
+    def test_initialise(self, expected_json_response):
+        price_history = resources.GraphSchema.load(expected_json_response)
 
         assert price_history == resources.Graph(
             daily={
@@ -39,11 +34,11 @@ class TestGraph:
             },
         )
 
-    def test_initialise_bad_timestamp(self, schema, expected_json_response):
+    def test_initialise_bad_timestamp(self, expected_json_response):
         expected_json_response["daily"]["not_an_epoch"] = 100
 
         with pytest.raises(marshmallow.ValidationError):
-            schema.load(expected_json_response)
+            resources.GraphSchema.load(expected_json_response)
 
     def test_list_daily_prices(self):
         price_history = resources.Graph(
@@ -90,12 +85,8 @@ class TestCategory:
             ],
         }
 
-    @pytest.fixture
-    def schema(self):
-        return desert.schema(resources.Category, meta={"unknown": marshmallow.EXCLUDE})
-
-    def test_initialise(self, schema, expected_json_response):
-        category = schema.load(expected_json_response)
+    def test_initialise(self, expected_json_response):
+        category = resources.CategorySchema.load(expected_json_response)
 
         assert category == resources.Category(
             alpha=[
@@ -151,12 +142,8 @@ class TestItems:
             ],
         }
 
-    @pytest.fixture
-    def schema(self):
-        return desert.schema(resources.Items, meta={"unknown": marshmallow.EXCLUDE})
-
-    def test_initialise(self, schema, expected_json_response):
-        items = schema.load(expected_json_response)
+    def test_initialise(self, expected_json_response):
+        items = resources.ItemsSchema.load(expected_json_response)
 
         assert items.total == 97
 
@@ -182,8 +169,8 @@ class TestItems:
         assert item.current.price == 1800000000
         assert item.today.price == 43657
 
-    def test_initialise_bad_price(self, schema, expected_json_response):
+    def test_initialise_bad_price(self, expected_json_response):
         expected_json_response["items"][0]["current"]["price"] = "34.5t"
 
         with pytest.raises(marshmallow.ValidationError):
-            schema.load(expected_json_response)
+            resources.ItemsSchema.load(expected_json_response)
