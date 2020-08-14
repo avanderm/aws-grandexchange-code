@@ -73,7 +73,7 @@ class TestGraph:
         ]
 
 
-class TestCategory:
+class TestCategoryBreakdown:
     @pytest.fixture
     def expected_json_response(self):
         return {
@@ -86,9 +86,9 @@ class TestCategory:
         }
 
     def test_initialise(self, expected_json_response):
-        category = resources.CategorySchema.load(expected_json_response)
+        category = resources.CategoryBreakdownSchema.load(expected_json_response)
 
-        assert category == resources.Category(
+        assert category == resources.CategoryBreakdown(
             alpha=[
                 resources.LetterCount(letter="#", items=0),
                 resources.LetterCount(letter="a", items=4),
