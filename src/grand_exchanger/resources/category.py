@@ -8,7 +8,7 @@ import requests_html
 
 
 API_URL = (
-    "https://services.runescape.com/m=itemdb_rs/api/category.json?"
+    "https://services.runescape.com/m=itemdb_rs/api/catalogue/category.json?"
     "category={category_id}"
 )
 

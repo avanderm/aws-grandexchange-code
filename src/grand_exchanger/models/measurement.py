@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from . import Category, Item
+from .category import Category
+from .item import Item
 
 
 @dataclass
