@@ -8,8 +8,9 @@ from grand_exchanger import resources
 
 class TestGraph:
     @pytest.fixture
-    def expected_json_response(self):
-        return {
+    def mock_requests_get(self, mocker):
+        mock = mocker.patch("requests.get")
+        mock.return_value.__enter__.return_value.json.return_value = {
             "daily": {"1595808000000": 100, "1595721600000": 120, "1595635200000": 110},
             "average": {
                 "1595808000000": 100,
@@ -18,10 +19,22 @@ class TestGraph:
             },
         }
 
-    def test_initialise(self, expected_json_response):
-        price_history = resources.GraphSchema.load(expected_json_response)
+    @pytest.fixture
+    def mock_requests_get_invalid(self, mocker):
+        mock = mocker.patch("requests.get")
+        mock.return_value.__enter__.return_value.json.return_value = {
+            "daily": {"not_an_epoch": 100, "1595721600000": 120, "1595635200000": 110},
+            "average": {
+                "1595808000000": 100,
+                "1595721600000": 110,
+                "1595635200000": 104,
+            },
+        }
 
-        assert price_history == resources.Graph(
+    def test_get_historical_prices(self, mock_requests_get):
+        result = resources.get_historical_prices(1)
+
+        assert result == resources.Graph(
             daily={
                 datetime(2020, 7, 27, 0, 0): 100,
                 datetime(2020, 7, 26, 0, 0): 120,
@@ -34,11 +47,9 @@ class TestGraph:
             },
         )
 
-    def test_initialise_bad_timestamp(self, expected_json_response):
-        expected_json_response["daily"]["not_an_epoch"] = 100
-
+    def test_get_historical_prices_bad_timestamp(self, mock_requests_get_invalid):
         with pytest.raises(marshmallow.ValidationError):
-            resources.GraphSchema.load(expected_json_response)
+            resources.get_historical_prices(1)
 
     def test_list_daily_prices(self):
         price_history = resources.Graph(
@@ -75,8 +86,9 @@ class TestGraph:
 
 class TestCategoryBreakdown:
     @pytest.fixture
-    def expected_json_response(self):
-        return {
+    def mock_requests_get(self, mocker):
+        mock = mocker.patch("requests.get")
+        mock.return_value.__enter__.return_value.json.return_value = {
             "types": [],
             "alpha": [
                 {"letter": "#", "items": 0},
@@ -85,10 +97,10 @@ class TestCategoryBreakdown:
             ],
         }
 
-    def test_initialise(self, expected_json_response):
-        category = resources.CategoryBreakdownSchema.load(expected_json_response)
+    def test_initialise(self, mock_requests_get):
+        result = resources.get_category_breakdown(1)
 
-        assert category == resources.CategoryBreakdown(
+        assert result == resources.CategoryBreakdown(
             alpha=[
                 resources.LetterCount(letter="#", items=0),
                 resources.LetterCount(letter="a", items=4),
@@ -97,10 +109,31 @@ class TestCategoryBreakdown:
         )
 
 
+def test_get_categories(mocker):
+    mock = mocker.patch("requests_html.HTMLSession")
+    mock.return_value.get.return_value.html.find.return_value = iter(
+        [
+            mocker.Mock(text="Ammo", attrs={"href": "catalogue?cat=1"}),
+            mocker.Mock(text="Food", attrs={"href": "catalogue?cat=2"}),
+            mocker.Mock(text="Armour", attrs={"href": "catalogue?cat=3"}),
+            mocker.Mock(text="Weapons", attrs={"href": "catalogue?cat=4"}),
+        ]
+    )
+
+    result = resources.get_categories()
+    assert list(result) == [
+        (1, "Ammo"),
+        (2, "Food"),
+        (3, "Armour"),
+        (4, "Weapons"),
+    ]
+
+
 class TestItems:
     @pytest.fixture
-    def expected_json_response(self):
-        return {
+    def mock_requests_get(self, mocker):
+        mock = mocker.patch("requests.get")
+        mock.return_value.__enter__.return_value.json.return_value = {
             "total": 97,
             "items": [
                 {
@@ -142,12 +175,33 @@ class TestItems:
             ],
         }
 
-    def test_initialise(self, expected_json_response):
-        items = resources.ItemsSchema.load(expected_json_response)
+    @pytest.fixture
+    def mock_requests_get_invalid(self, mocker):
+        mock = mocker.patch("requests.get")
+        mock.return_value.__enter__.return_value.json.return_value = {
+            "total": 97,
+            "items": [
+                {
+                    "icon": "",
+                    "icon_large": "",
+                    "id": 1,
+                    "type": "Familiars",
+                    "typeIcon": "",
+                    "name": "Thing",
+                    "description": "A thing",
+                    "current": {"trend": "neutral", "price": "4.2t"},
+                    "today": {"trend": "neutral", "price": 110},
+                    "members": "true",
+                },
+            ],
+        }
 
-        assert items.total == 97
+    def test_get_items_page(self, mock_requests_get):
+        result = resources.get_items_page(1, "a", 1)
 
-        item = items.items[0]
+        assert result.total == 97
+
+        item = result.items[0]
         assert item.id == 1
         assert item.name == "Thing"
         assert item.description == "A thing"
@@ -157,20 +211,18 @@ class TestItems:
 
         assert item.members is True
 
-        item = items.items[1]
+        item = result.items[1]
 
         assert item.current.price == 11300
         assert item.today.price == 24400000
 
         assert item.members is False
 
-        item = items.items[2]
+        item = result.items[2]
 
         assert item.current.price == 1800000000
         assert item.today.price == 43657
 
-    def test_initialise_bad_price(self, expected_json_response):
-        expected_json_response["items"][0]["current"]["price"] = "34.5t"
-
+    def test_get_items_page_bad_price(self, mock_requests_get_invalid):
         with pytest.raises(marshmallow.ValidationError):
-            resources.ItemsSchema.load(expected_json_response)
+            resources.get_items_page(1, "a", 1)
