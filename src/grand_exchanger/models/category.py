@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Iterator, Tuple
+from typing import Iterator
 
 from grand_exchanger import resources
 from .item import Item
+from ..exceptions import NoSuchCategoryException
 
 
 @dataclass
@@ -10,11 +13,12 @@ class Category:
     id: int
     name: str
 
-    def get_items(self) -> Iterator[Item]:
-        for i in self.get_item_current_prices():
-            yield i[0]
+    @property
+    def total(self) -> int:
+        breakdown = resources.get_category_breakdown(self.id)
+        return sum(map(lambda x: x.items, breakdown.alpha))
 
-    def get_item_current_prices(self) -> Iterator[Tuple[Item, int]]:
+    def get_items(self) -> Iterator[Item]:
         breakdown = resources.get_category_breakdown(self.id)
 
         for lc in breakdown.alpha:
@@ -29,11 +33,32 @@ class Category:
 
                 if batch.items:
                     for i in batch.items:
-                        item = Item(i.id, i.name, i.members)
-                        yield item, i.today.price
+                        item = Item(i.id, i.name, self.name, i.members, i.current.price)
+                        yield item
 
                         count += 1
                 else:
                     empty_page = True
 
                 page += 1
+
+    @classmethod
+    def get_categories(cls) -> Iterator[Category]:
+        for category_id, name in resources.get_categories():
+            yield cls(category_id, name)
+
+    @classmethod
+    def get(cls, category_id: int) -> Category:
+        for c in cls.get_categories():
+            if c.id == category_id:
+                return c
+
+        raise NoSuchCategoryException
+
+    @classmethod
+    def get_category_for_item(cls, item: Item) -> Category:
+        for c in cls.get_categories():
+            if c.name == item.type:
+                return c
+
+        raise NoSuchCategoryException

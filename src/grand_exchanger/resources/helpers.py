@@ -1,9 +1,20 @@
 from datetime import datetime
+import json
 import re
 from typing import Any, Mapping, Optional
 
 from marshmallow import fields, ValidationError
+import requests
 import six
+import urllib3.exceptions
+
+
+def retry_cases(exception: Exception) -> bool:
+    return (
+        isinstance(exception, requests.ConnectionError)
+        or isinstance(exception, json.JSONDecodeError)
+        or isinstance(exception, urllib3.exceptions.MaxRetryError)
+    )
 
 
 class TimeStamp(fields.Field):
@@ -38,8 +49,8 @@ class Price(fields.Field):
             if isinstance(value, six.integer_types):
                 return value
             else:
-                price = value.strip()
-                m = re.search("^(\d+(?:\.\d+)?)([kmb])$", price)
+                price = value.replace(" ", "")
+                m = re.search("^((?:[-+])?\d+(?:\.\d+)?)([kmb])$", price)
 
                 if m:
                     base = float(m.group(1))

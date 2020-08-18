@@ -5,8 +5,9 @@ from typing import Dict, Iterator
 import desert
 import marshmallow
 import requests
+import retrying
 
-from .helpers import Price, TimeStamp
+from .helpers import Price, retry_cases, TimeStamp
 
 API_URL = "https://services.runescape.com/m=itemdb_rs/api/graph/{item_id}.json"
 
@@ -32,6 +33,9 @@ class Graph:
 schema = desert.schema(Graph, meta={"unknown": marshmallow.EXCLUDE})
 
 
+@retrying.retry(
+    retry_on_exception=retry_cases, wait_random_min=1000, wait_random_max=3000
+)
 def get_historical_prices(item_id: int) -> Graph:
     with requests.get(API_URL.format(item_id=item_id)) as response:
         response.raise_for_status()

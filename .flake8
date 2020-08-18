@@ -1,11 +1,12 @@
 [flake8]
 select = ANN,B,B9,BLK,C,E,F,I,S,W
 application-import-names = grand_exchanger,tests
-ignore = ANN003,ANN101,E203,E501,W503
+ignore = ANN003,ANN101,ANN102,E203,E501,W503
 import-order-style = google
 max-complexity = 10
 max-line-length = 80
 per-file-ignores =
     tests/*:S101,ANN
+    src/grand_exchanger/console.py:S307
     src/grand_exchanger/resources/helpers.py:W605
     noxfile.py:ANN

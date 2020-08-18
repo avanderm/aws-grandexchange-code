@@ -2,8 +2,9 @@ from datetime import datetime
 
 import marshmallow
 import pytest
+import requests
 
-from grand_exchanger import resources
+from grand_exchanger import exceptions, resources
 
 
 class TestGraph:
@@ -32,9 +33,11 @@ class TestGraph:
         }
 
     def test_get_historical_prices(self, mock_requests_get):
+        from grand_exchanger.resources.graph import Graph
+
         result = resources.get_historical_prices(1)
 
-        assert result == resources.Graph(
+        assert result == Graph(
             daily={
                 datetime(2020, 7, 27, 0, 0): 100,
                 datetime(2020, 7, 26, 0, 0): 120,
@@ -52,7 +55,9 @@ class TestGraph:
             resources.get_historical_prices(1)
 
     def test_list_daily_prices(self):
-        price_history = resources.Graph(
+        from grand_exchanger.resources.graph import Graph
+
+        price_history = Graph(
             daily={
                 datetime(2020, 7, 26, 0, 0): 120,
                 datetime(2020, 7, 25, 0, 0): 110,
@@ -68,7 +73,9 @@ class TestGraph:
         ]
 
     def test_list_average_prices(self):
-        price_history = resources.Graph(
+        from grand_exchanger.resources.graph import Graph
+
+        price_history = Graph(
             daily={},
             average={
                 datetime(2020, 7, 26, 0, 0): 100,
@@ -98,35 +105,36 @@ class TestCategoryBreakdown:
         }
 
     def test_initialise(self, mock_requests_get):
+        from grand_exchanger.resources.category import CategoryBreakdown, LetterCount
+
         result = resources.get_category_breakdown(1)
 
-        assert result == resources.CategoryBreakdown(
+        assert result == CategoryBreakdown(
             alpha=[
-                resources.LetterCount(letter="#", items=0),
-                resources.LetterCount(letter="a", items=4),
-                resources.LetterCount(letter="j", items=2),
+                LetterCount(letter="#", items=0),
+                LetterCount(letter="a", items=4),
+                LetterCount(letter="j", items=2),
             ]
         )
 
+    def test_get_categories(self, mocker):
+        mock = mocker.patch("requests_html.HTMLSession")
+        mock.return_value.get.return_value.html.find.return_value = iter(
+            [
+                mocker.Mock(text="Ammo", attrs={"href": "catalogue?cat=1"}),
+                mocker.Mock(text="Food", attrs={"href": "catalogue?cat=2"}),
+                mocker.Mock(text="Armour", attrs={"href": "catalogue?cat=3"}),
+                mocker.Mock(text="Weapons", attrs={"href": "catalogue?cat=4"}),
+            ]
+        )
 
-def test_get_categories(mocker):
-    mock = mocker.patch("requests_html.HTMLSession")
-    mock.return_value.get.return_value.html.find.return_value = iter(
-        [
-            mocker.Mock(text="Ammo", attrs={"href": "catalogue?cat=1"}),
-            mocker.Mock(text="Food", attrs={"href": "catalogue?cat=2"}),
-            mocker.Mock(text="Armour", attrs={"href": "catalogue?cat=3"}),
-            mocker.Mock(text="Weapons", attrs={"href": "catalogue?cat=4"}),
+        result = resources.get_categories()
+        assert list(result) == [
+            (1, "Ammo"),
+            (2, "Food"),
+            (3, "Armour"),
+            (4, "Weapons"),
         ]
-    )
-
-    result = resources.get_categories()
-    assert list(result) == [
-        (1, "Ammo"),
-        (2, "Food"),
-        (3, "Armour"),
-        (4, "Weapons"),
-    ]
 
 
 class TestItems:
@@ -226,3 +234,51 @@ class TestItems:
     def test_get_items_page_bad_price(self, mock_requests_get_invalid):
         with pytest.raises(marshmallow.ValidationError):
             resources.get_items_page(1, "a", 1)
+
+
+class TestItemDetails:
+    @pytest.fixture
+    def mock_requests_get(self, mocker):
+        mock = mocker.patch("requests.get")
+        mock.return_value.__enter__.return_value.json.return_value = {
+            "item": {
+                "icon": "",
+                "icon_large": "",
+                "id": 21787,
+                "type": "Miscellaneous",
+                "typeIcon": "",
+                "name": "Steadfast boots",
+                "description": "A pair of powerful-looking boots.",
+                "current": {"trend": "neutral", "price": "5.9m"},
+                "today": {"trend": "negative", "price": "- 138.2k"},
+                "members": "true",
+                "day30": {"trend": "positive", "change": "+0.0%"},
+                "day90": {"trend": "negative", "change": "-3.0%"},
+                "day180": {"trend": "negative", "change": "-4.0%"},
+            }
+        }
+
+    @pytest.fixture
+    def mock_requests_get_404(self, mocker):
+        def side_effect():
+            raise requests.HTTPError
+
+        mock = mocker.patch("requests.get")
+        mock.return_value.__enter__.return_value.raise_for_status.side_effect = (
+            side_effect
+        )
+
+    def test_get_item_details(self, mock_requests_get):
+        details = resources.get_item_details(21787)
+
+        item = details.item
+        assert item.id == 21787
+        assert item.name == "Steadfast boots"
+        assert item.type == "Miscellaneous"
+        assert item.current.price == 5900000
+        assert item.today.price == -138200
+        assert item.members is True
+
+    def test_get_item_details_invalid_id(self, mock_requests_get_404):
+        with pytest.raises(exceptions.NoSuchItemException):
+            resources.get_item_details(1)

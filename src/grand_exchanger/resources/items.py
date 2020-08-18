@@ -4,29 +4,15 @@ from typing import List
 import desert
 import marshmallow
 import requests
+import retrying
 
-from .helpers import Price
+from .common import Item
+from .helpers import retry_cases
 
 API_URL = (
     "https://services.runescape.com/m=itemdb_rs/api/catalogue/items.json?"
     "category={category_id}&alpha={letter}&page={page}"
 )
-
-
-@dataclass
-class PriceTrend:
-    trend: str
-    price: int = desert.field(Price())
-
-
-@dataclass
-class Item:
-    id: int
-    name: str
-    description: str
-    current: PriceTrend
-    today: PriceTrend
-    members: bool
 
 
 ItemSchema = desert.schema_class(Item, meta={"unknown": marshmallow.EXCLUDE})()
@@ -43,6 +29,9 @@ class Items:
 schema = desert.schema(Items, meta={"unknown": marshmallow.EXCLUDE})
 
 
+@retrying.retry(
+    retry_on_exception=retry_cases, wait_random_min=1000, wait_random_max=3000
+)
 def get_items_page(category_id: int, letter: str, page: int) -> Items:
     with requests.get(
         API_URL.format(category_id=category_id, letter=letter, page=page)

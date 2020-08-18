@@ -16,7 +16,7 @@ class PriceMeasurement:
         return {
             "measurement": "price",
             "tags": {
-                "category_id": self.category.id,
+                "category": self.category.name,
                 "item_id": self.item.id,
                 "members": self.item.members,
             },
