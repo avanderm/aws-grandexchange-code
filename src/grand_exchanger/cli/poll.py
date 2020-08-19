@@ -1,3 +1,4 @@
+"""Module for the info command group."""
 from datetime import datetime
 import json
 import sys
@@ -12,12 +13,18 @@ from grand_exchanger import __version__, exceptions, models
 @click.group()
 @click.version_option(version=__version__)
 def cli() -> None:
+    """CLI group."""
     pass
 
 
 @cli.command("item")
 @click.option("--id", "-i", type=int, required=True)
 def item(id: int) -> None:
+    """Outputs a measurement for latest item price.
+
+    Args:
+        id (int): A valid item ID.
+    """
     try:
         item = models.Item.get(id)
         category = models.Category.get_category_for_item(item)
@@ -34,6 +41,11 @@ def item(id: int) -> None:
 @cli.command("category")
 @click.option("--id", "-i", type=int, required=True)
 def category(id: int) -> None:
+    """Outputs measurements for latest item prices in a category.
+
+    Args:
+        id (int): A valid category ID.
+    """
     try:
         category = models.Category.get(id)
 

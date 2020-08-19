@@ -1,3 +1,4 @@
+"""Module for item collection API resources."""
 from dataclasses import dataclass
 from typing import List
 
@@ -20,6 +21,8 @@ ItemSchema = desert.schema_class(Item, meta={"unknown": marshmallow.EXCLUDE})()
 
 @dataclass
 class Items:
+    """Representation of a page with items."""
+
     total: int
     items: List[Item] = desert.field(
         marshmallow_field=marshmallow.fields.List(marshmallow.fields.Nested(ItemSchema))
@@ -33,6 +36,16 @@ schema = desert.schema(Items, meta={"unknown": marshmallow.EXCLUDE})
     retry_on_exception=retry_cases, wait_random_min=1000, wait_random_max=3000
 )
 def get_items_page(category_id: int, letter: str, page: int) -> Items:
+    """Parses a page with items.
+
+    Args:
+        category_id (int): A valid category ID.
+        letter (str): An alphabetic character or #%23" for numbers.
+        page (int): A page number.
+
+    Returns:
+        Items: collection of items
+    """
     with requests.get(
         API_URL.format(category_id=category_id, letter=letter, page=page)
     ) as response:

@@ -1,3 +1,4 @@
+"""Tests for the resources package."""
 from datetime import datetime
 
 import marshmallow
@@ -8,8 +9,11 @@ from grand_exchanger import exceptions, resources
 
 
 class TestGraph:
+    """Test class for grand_exchanger.resources.graph."""
+
     @pytest.fixture
     def mock_requests_get(self, mocker):
+        """Fixture for mocking requests.get."""
         mock = mocker.patch("requests.get")
         mock.return_value.__enter__.return_value.json.return_value = {
             "daily": {"1595808000000": 100, "1595721600000": 120, "1595635200000": 110},
@@ -22,6 +26,7 @@ class TestGraph:
 
     @pytest.fixture
     def mock_requests_get_invalid(self, mocker):
+        """Fixture for mocking requests.get."""
         mock = mocker.patch("requests.get")
         mock.return_value.__enter__.return_value.json.return_value = {
             "daily": {"not_an_epoch": 100, "1595721600000": 120, "1595635200000": 110},
@@ -33,6 +38,7 @@ class TestGraph:
         }
 
     def test_get_historical_prices(self, mock_requests_get):
+        """Epoch timestamps and prices are correctly converted."""
         from grand_exchanger.resources.graph import Graph
 
         result = resources.get_historical_prices(1)
@@ -51,10 +57,12 @@ class TestGraph:
         )
 
     def test_get_historical_prices_bad_timestamp(self, mock_requests_get_invalid):
+        """Non epoch timestamps cause an error."""
         with pytest.raises(marshmallow.ValidationError):
             resources.get_historical_prices(1)
 
     def test_list_daily_prices(self):
+        """Daily prices are correctly returned."""
         from grand_exchanger.resources.graph import Graph
 
         price_history = Graph(
@@ -73,6 +81,7 @@ class TestGraph:
         ]
 
     def test_list_average_prices(self):
+        """Daily average prices are correctly returned."""
         from grand_exchanger.resources.graph import Graph
 
         price_history = Graph(
@@ -92,8 +101,11 @@ class TestGraph:
 
 
 class TestCategoryBreakdown:
+    """Test class for grand_exchanger.resources.category."""
+
     @pytest.fixture
     def mock_requests_get(self, mocker):
+        """Fixture for mocking requests.get."""
         mock = mocker.patch("requests.get")
         mock.return_value.__enter__.return_value.json.return_value = {
             "types": [],
@@ -105,6 +117,7 @@ class TestCategoryBreakdown:
         }
 
     def test_initialise(self, mock_requests_get):
+        """Correct initialisation of CategoryBreakdown dataclass."""
         from grand_exchanger.resources.category import CategoryBreakdown, LetterCount
 
         result = resources.get_category_breakdown(1)
@@ -118,6 +131,7 @@ class TestCategoryBreakdown:
         )
 
     def test_get_categories(self, mocker):
+        """Categories are correctly extracted from HTML."""
         mock = mocker.patch("requests_html.HTMLSession")
         mock.return_value.get.return_value.html.find.return_value = iter(
             [
@@ -138,8 +152,11 @@ class TestCategoryBreakdown:
 
 
 class TestItems:
+    """Test class for grand_exchanger.resources.items."""
+
     @pytest.fixture
     def mock_requests_get(self, mocker):
+        """Fixture for mocking requests.get."""
         mock = mocker.patch("requests.get")
         mock.return_value.__enter__.return_value.json.return_value = {
             "total": 97,
@@ -185,6 +202,7 @@ class TestItems:
 
     @pytest.fixture
     def mock_requests_get_invalid(self, mocker):
+        """Fixture for mocking requests.get."""
         mock = mocker.patch("requests.get")
         mock.return_value.__enter__.return_value.json.return_value = {
             "total": 97,
@@ -205,6 +223,7 @@ class TestItems:
         }
 
     def test_get_items_page(self, mock_requests_get):
+        """Correct instantiation of items from an items page."""
         result = resources.get_items_page(1, "a", 1)
 
         assert result.total == 97
@@ -232,13 +251,17 @@ class TestItems:
         assert item.today.price == 43657
 
     def test_get_items_page_bad_price(self, mock_requests_get_invalid):
+        """Unknown price format throws an error."""
         with pytest.raises(marshmallow.ValidationError):
             resources.get_items_page(1, "a", 1)
 
 
 class TestItemDetails:
+    """Test class for grand_exchanger.resources.details."""
+
     @pytest.fixture
     def mock_requests_get(self, mocker):
+        """Fixture for mocking requests.get."""
         mock = mocker.patch("requests.get")
         mock.return_value.__enter__.return_value.json.return_value = {
             "item": {
@@ -260,6 +283,8 @@ class TestItemDetails:
 
     @pytest.fixture
     def mock_requests_get_404(self, mocker):
+        """Fixture for mocking requests.get."""
+
         def side_effect():
             raise requests.HTTPError
 
@@ -269,6 +294,7 @@ class TestItemDetails:
         )
 
     def test_get_item_details(self, mock_requests_get):
+        """Correct instantiation of ItemDetails dataclass."""
         details = resources.get_item_details(21787)
 
         item = details.item
@@ -280,5 +306,6 @@ class TestItemDetails:
         assert item.members is True
 
     def test_get_item_details_invalid_id(self, mock_requests_get_404):
+        """Retrieval of an unknown item causes an error."""
         with pytest.raises(exceptions.NoSuchItemException):
             resources.get_item_details(1)

@@ -1,3 +1,4 @@
+"""Resources classes and methods."""
 from .category import (
     get_categories,
     get_category_breakdown,

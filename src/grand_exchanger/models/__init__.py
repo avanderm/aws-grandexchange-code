@@ -1,3 +1,4 @@
+"""Model classes."""
 from .category import Category
 from .item import Item
 from .measurement import PriceMeasurement

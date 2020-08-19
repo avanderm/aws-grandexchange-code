@@ -1,3 +1,4 @@
+"""Module for helper functionality."""
 from datetime import datetime
 import json
 import re
@@ -10,6 +11,7 @@ import urllib3.exceptions
 
 
 def retry_cases(exception: Exception) -> bool:
+    """Exceptions eligible for request retries."""
     return (
         isinstance(exception, requests.ConnectionError)
         or isinstance(exception, json.JSONDecodeError)
@@ -18,8 +20,7 @@ def retry_cases(exception: Exception) -> bool:
 
 
 class TimeStamp(fields.Field):
-    """Deserializes an epoch timestamp.
-    """
+    """Deserializes an epoch timestamp."""
 
     def _deserialize(
         self,
@@ -28,6 +29,7 @@ class TimeStamp(fields.Field):
         data: Optional[Mapping[str, Any]],
         **kwargs
     ) -> datetime:
+        """Deserializes an epoch timestamp to a datetime object."""
         try:
             return datetime.utcfromtimestamp(int(value) / 1000)
         except ValueError as error:
@@ -35,8 +37,7 @@ class TimeStamp(fields.Field):
 
 
 class Price(fields.Field):
-    """Deserializes a Runescape formatted price.
-    """
+    """Deserializes a Runescape formatted price."""
 
     def _deserialize(
         self,
@@ -45,6 +46,7 @@ class Price(fields.Field):
         data: Optional[Mapping[str, Any]],
         **kwargs
     ) -> int:
+        """Deserializes a price string to an integer."""
         try:
             if isinstance(value, six.integer_types):
                 return value

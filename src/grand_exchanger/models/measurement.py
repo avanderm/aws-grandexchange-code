@@ -1,3 +1,4 @@
+"""Module for measurement classes."""
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -7,12 +8,15 @@ from .item import Item
 
 @dataclass
 class PriceMeasurement:
+    """Representation of a price measurement for an item."""
+
     item: Item
     category: Category
     price: int
     dt: datetime
 
     def to_dict(self) -> dict:
+        """Returns a data representation for use in InfluxDB."""
         return {
             "measurement": "price",
             "tags": {
