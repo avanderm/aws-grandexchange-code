@@ -18,7 +18,7 @@ def cli() -> None:
 
 
 @cli.command("item")
-@click.option("--id", "-i", type=int, required=True)
+@click.argument("id", type=int, required=True)
 def item(id: int) -> None:
     """Outputs a measurement for latest item price.
 
@@ -39,7 +39,7 @@ def item(id: int) -> None:
 
 
 @cli.command("category")
-@click.option("--id", "-i", type=int, required=True)
+@click.argument("id", type=int, required=True)
 def category(id: int) -> None:
     """Outputs measurements for latest item prices in a category.
 
@@ -54,6 +54,22 @@ def category(id: int) -> None:
                 item, category, item.price, datetime.now()
             )
             click.echo(json.dumps(measurement.to_dict()))
+    except exceptions.NoSuchCategoryException:
+        click.secho("Invalid category", fg="red")
+        sys.exit(1)
+
+
+@cli.command("all")
+def all() -> None:
+    """Output price measurements for all items in the date range."""
+    try:
+        for category in models.Category.get_categories():
+            for item in category.get_items():
+                measurement = models.PriceMeasurement(
+                    item, category, item.price, datetime.now()
+                )
+                click.echo(json.dumps(measurement.to_dict()))
+
     except exceptions.NoSuchCategoryException:
         click.secho("Invalid category", fg="red")
         sys.exit(1)

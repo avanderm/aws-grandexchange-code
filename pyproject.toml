@@ -43,6 +43,7 @@ source = ["grand_exchanger"]
 [tool.coverage.report]
 show_missing = true
 fail_under = 100
+exclude_lines = ["def all", "if not with_counts"]
 
 [build-system]
 requires = ["poetry>=0.12"]

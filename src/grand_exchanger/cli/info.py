@@ -14,14 +14,22 @@ def cli() -> None:
 
 
 @cli.command("ls")
-def list_categories() -> None:
-    """Lists all categories with name and total items."""
+@click.option("--with-counts/--without-counts", default=True)
+def list_categories(with_counts: bool) -> None:
+    """Lists all categories with name and total items.
+
+    Args:
+        with_counts (bool): Include item counts per category.
+    """
     for c in models.Category.get_categories():
-        click.secho(f"{c.id}: {c.name} ({c.total})", fg="green")
+        if not with_counts:
+            click.secho(f"{c.id}: {c.name}", fg="green")
+        else:
+            click.secho(f"{c.id}: {c.name} ({c.total})", fg="green")
 
 
 @cli.command("item")
-@click.option("--id", "-i", type=int, required=True)
+@click.argument("id", type=int, required=True)
 def item(id: int) -> None:
     """Displays information about an item.
 
@@ -37,7 +45,7 @@ def item(id: int) -> None:
 
 
 @cli.command("category")
-@click.option("--id", "-i", type=int, required=True)
+@click.argument("id", type=int, required=True)
 def category(id: int) -> None:
     """Displays information about items for a category.
 

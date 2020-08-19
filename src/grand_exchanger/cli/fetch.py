@@ -68,7 +68,7 @@ def cli(ctx: click.Context, start: datetime, final: datetime, date: datetime) ->
 
 
 @cli.command("item")
-@click.option("--id", "-i", type=int, required=True)
+@click.argument("id", type=int, required=True)
 @click.pass_obj
 def item(interval: DateRange, id: int) -> None:
     """Output price measurements for this item in the date range.
@@ -92,7 +92,7 @@ def item(interval: DateRange, id: int) -> None:
 
 
 @cli.command("category")
-@click.option("--id", "-i", type=int, required=True)
+@click.argument("id", type=int, required=True)
 @click.pass_obj
 def category(interval: DateRange, id: int) -> None:
     """Output price measurements for items in this category in the date range.
@@ -109,6 +109,27 @@ def category(interval: DateRange, id: int) -> None:
                 if interval.contains(dt):
                     measurement = models.PriceMeasurement(item, category, price, dt)
                     click.echo(json.dumps(measurement.to_dict()))
+
+    except exceptions.NoSuchCategoryException:
+        click.secho("Invalid category", fg="red")
+        sys.exit(1)
+
+
+@cli.command("all")
+@click.pass_obj
+def all(interval: DateRange) -> None:
+    """Output price measurements for all items in the date range.
+
+    Args:
+        interval (DateRange): A date range.
+    """
+    try:
+        for category in models.Category.get_categories():
+            for item in category.get_items():
+                for dt, price in item.get_historical_prices():
+                    if interval.contains(dt):
+                        measurement = models.PriceMeasurement(item, category, price, dt)
+                        click.echo(json.dumps(measurement.to_dict()))
 
     except exceptions.NoSuchCategoryException:
         click.secho("Invalid category", fg="red")

@@ -18,7 +18,7 @@ class TestPoll:
 
     def test_item(self, runner):
         """Test JSON deserialization for the current item price."""
-        result = runner.invoke(poll.cli, ["item", "-i", "2"])
+        result = runner.invoke(poll.cli, ["item", "2"])
 
         assert result.exit_code == 0
         for i in result.output.split("\n"):
@@ -27,13 +27,13 @@ class TestPoll:
 
     def test_item_invalid(self, runner):
         """Test ungraceful exit for an non-existent item."""
-        result = runner.invoke(poll.cli, ["item", "-i", "9999"])
+        result = runner.invoke(poll.cli, ["item", "9999"])
 
         assert result.exit_code == 1
 
     def test_category(self, runner):
         """Test JSON deserialization for current item prices in a category."""
-        result = runner.invoke(poll.cli, ["category", "-i", "38"])
+        result = runner.invoke(poll.cli, ["category", "38"])
 
         assert result.exit_code == 0
         for i in result.output.split("\n"):
@@ -42,6 +42,6 @@ class TestPoll:
 
     def test_category_invalid(self, runner):
         """Test ungraceful exit for an non-existent category."""
-        result = runner.invoke(poll.cli, ["category", "-i", "9999"])
+        result = runner.invoke(poll.cli, ["category", "9999"])
 
         assert result.exit_code == 1
